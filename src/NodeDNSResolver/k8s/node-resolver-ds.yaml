@@ -29,7 +29,7 @@ spec:
         - name: ENV
           value: k8s
         name: node-resolver-helper
-        image: acrdevgbbmsftweu.azurecr.io/k8s-clients/nodednsresolver:latest
+        image: REPLACE.azurecr.io/k8s-clients/nodednsresolver:latest
         imagePullPolicy: Always
         securityContext:
           privileged: true
