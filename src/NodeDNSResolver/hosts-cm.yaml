@@ -1,0 +1,13 @@
+﻿apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+  labels:
+    updated-by-k8s-app: node-resolver-ds
+data:
+    nodes-resolver.override: |
+          hosts { 
+              REPLACE
+              fallthrough
+          }

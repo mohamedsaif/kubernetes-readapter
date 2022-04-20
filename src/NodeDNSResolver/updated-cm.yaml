@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+    nodes-resolver.override: |
+          hosts { 
+              10.171.0.4 aks-sys-34350944-vmss000002
+              10.171.0.35 aks-sys-34350944-vmss000003
+              fallthrough
+          }

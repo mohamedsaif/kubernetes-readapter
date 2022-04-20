@@ -20,6 +20,10 @@ echo $CORE_DNS_SERVICE_IP
 
 # Creating a debug pod
 kubectl debug node/$AKS_NODE -it --image=mcr.microsoft.com/aks/fundamental/base-ubuntu:v0.0.11
+
+#########################################################################
+# The following commands will run in the interactive debugging session: #
+#########################################################################
 nslookup
 server 10.0.0.10 # Replace if you have different CoreDNS IP
 
@@ -139,5 +143,83 @@ ACR_NAME=REPLACE
 # OPTION 1: Using ACR Tasks
 # With dynamic version
 az acr build -t k8s-clients/nodednsresolver:{{.Run.ID}} -t k8s-clients/nodednsresolver:latest -r $ACR_NAME .
+
+```
+
+Once the image is pushed successfully take a note of the custom tag generated from ```{{.Run.ID}}``` if you want to deploy the image using that tag.
+
+>>NOTE: It is highly recommended to use custom tags other than ```latest``` in production system to know exactly the version of the image running and also to leverage local image cache for faster deployments.
+
+### Deploy to Kubernetes
+
+Now it is time to deploy the DaemonSet to AKS.
+
+Head to the folder named **k8s** under the project folder and update the image url to point to the pushed image.
+
+Also take a note that I'm creating a new service account with a cluster role binding to **cluster-admin** to allow the pods to query the nodes, apply the updated ConfigMap and restart the CoreDNS deployment.
+
+When you are ready, execute the following command to deploy all needed configuration:
+
+```bash
+
+kubectl apply -f ./k8s
+
+```
+
+### Validating
+
+Now with the deployment up and running in your cluster, you can view the different changes using the following script:
+
+```bash
+
+# Get the node-resolver-ds pods
+kubectl get pods --selector=k8s-app=node-resolver-ds -n kube-system
+
+# Get one node name
+AKS_NODE=$(kubectl get nodes -o jsonpath='{ .items[0].metadata.name }')
+echo $AKS_NODE
+
+# Get the CoreDNS service IP
+CORE_DNS_SERVICE_IP=$(kubectl get service -n kube-system kube-dns -o jsonpath='{ .spec.clusterIP }')
+echo $CORE_DNS_SERVICE_IP
+
+# Creating a debug pod
+kubectl debug node/$AKS_NODE -it --image=mcr.microsoft.com/aks/fundamental/base-ubuntu:v0.0.11
+
+#########################################################################
+# The following commands will run in the interactive debugging session: #
+#########################################################################
+nslookup
+server 10.0.0.10 # Replace if you have different CoreDNS IP
+
+# Replace the node names with names from your cluster
+aks-sys-34350944-vmss000002
+# Server:         10.0.0.10
+# Address:        10.0.0.10#53
+
+# Non-authoritative answer:
+# Name:   aks-sys-34350944-vmss000002.
+# Address: 10.171.0.4
+
+exit
+
+```
+
+### Diagnosis
+
+If you faced issues, these commands might be helpful in knowing why:
+
+```bash
+
+# These are the logs of all running pods
+kubectl logs --selector=k8s-app=node-resolver-ds -n kube-system
+
+# getting logs for the first pod only
+POD_NAME=$(kubectl get pod --selector=k8s-app=node-resolver-ds -n kube-system -o jsonpath='{ .items[0].metadata.name }')
+echo $POD_NAME
+kubectl logs -n kube-system $POD_NAME
+
+# Restarting the DaemonSet
+kubectl rollout restart daemonset -n kube-system node-resolver-ds
 
 ```

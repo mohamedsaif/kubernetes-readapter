@@ -1,0 +1,42 @@
+﻿apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-resolver-ds
+  namespace: kube-system
+  labels:
+    k8s-app: node-resolver-ds
+spec:
+  selector:
+    matchLabels:
+      k8s-app: node-resolver-ds
+  template:
+    metadata:
+      labels:
+        k8s-app: node-resolver-ds
+    spec:
+      priorityClassName: system-node-critical
+      serviceAccountName: node-resolver-ds-sa
+      dnsPolicy: Default
+      tolerations:
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+      - effect: "NoExecute"
+        operator: "Exists"
+      - effect: "NoSchedule"
+        operator: "Exists"
+      containers:
+      - env:
+        - name: ENV
+          value: k8s
+        name: node-resolver-helper
+        image: acrdevgbbmsftweu.azurecr.io/k8s-clients/nodednsresolver:latest
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+        resources:
+          requests:
+            cpu: 25m
+            memory: 50Mi
+          limits:
+            cpu: 25m
+            memory: 50Mi
